@@ -1,3 +1,7 @@
+import 'dart:io';
+import 'package:http/io_client.dart';
+import 'package:http/http.dart' as http;
+
 import 'package:bible_app_1/bible/english.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -32,9 +36,20 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  late List<TextSpan> _verses = [
+    const TextSpan(text: "TEMP VALUE", style: TextStyle(fontSize: 20))
+  ];
   @override
   void initState() {
+    startAsyncInit();
     super.initState();
+  }
+
+  Future startAsyncInit() async {
+    final temp = await _getVerses();
+    setState(() {
+      _verses = temp;
+    });
   }
 
   String _numToUnicode(int num) {
@@ -79,8 +94,11 @@ class _HomePageState extends State<HomePage> {
     return unicode.join();
   }
 
-  List<TextSpan> _getVerses() {
-    final jsonResponse = json.decode(Bible.genesis1);
+  Future<List<TextSpan>> _getVerses() async {
+    final client = http.Client();
+    final jsonResponse = json.decode(await client.read(Uri.http(
+        'raw.githubusercontent.com',
+        '/kenyonbowers/Bible-JSON/main/JSON/Mark/1.json')));
     List<TextSpan> verses = [];
     for (var i = 0; i < jsonResponse['verses'].length; i++) {
       String currStr = jsonResponse['verses'][i]['text'];
@@ -121,7 +139,7 @@ class _HomePageState extends State<HomePage> {
               text: TextSpan(
                 style: const TextStyle(color: Colors.black, fontSize: 20),
                 children: <TextSpan>[
-                  for (var verse in _getVerses()) verse,
+                  for (var verse in _verses) verse,
                 ],
               ),
             ),
