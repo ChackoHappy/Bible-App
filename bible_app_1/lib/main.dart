@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:http/io_client.dart';
 import 'package:http/http.dart' as http;
 
-import 'package:bible_app_1/bible/english.dart';
+import 'package:bible_app_1/bible.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 
@@ -37,8 +37,12 @@ class HomePage extends StatefulWidget {
 
 class _HomePageState extends State<HomePage> {
   late List<TextSpan> _verses = [
-    const TextSpan(text: "TEMP VALUE", style: TextStyle(fontSize: 20))
+    const TextSpan(text: "Loading...", style: TextStyle(fontSize: 20))
   ];
+
+  int bookIndx = 1;
+  int chapterIndx = 1;
+
   @override
   void initState() {
     startAsyncInit();
@@ -94,20 +98,26 @@ class _HomePageState extends State<HomePage> {
     return unicode.join();
   }
 
+  //Fetches verses and places them in a List of TextSpans
   Future<List<TextSpan>> _getVerses() async {
     final client = http.Client();
+    //Get JSON
     final jsonResponse = json.decode(await client.read(Uri.http(
         'raw.githubusercontent.com',
-        '/kenyonbowers/Bible-JSON/main/JSON/Mark/1.json')));
+        '/kenyonbowers/Bible-JSON/main/JSON/${Bible.books[bookIndx - 1]}/$chapterIndx.json')));
     List<TextSpan> verses = [];
+    //Build List
     for (var i = 0; i < jsonResponse['verses'].length; i++) {
       String currStr = jsonResponse['verses'][i]['text'];
+      //Add newline if verse has ¶
       if (currStr.contains("¶")) {
         verses.add(const TextSpan(text: "\n"));
         currStr = currStr.replaceAll("¶ ", "");
       }
+      //Add verse number
       verses.add(TextSpan(
-          text: _numToUnicode(i + 1), style: const TextStyle(fontSize: 20)));
+          text: " ${_numToUnicode(i + 1)} ",
+          style: const TextStyle(fontSize: 20)));
       List<String> tempSplit = currStr.split("<em>");
       for (var k = 0; k < tempSplit.length; k++) {
         if (!tempSplit[k].contains("</em>")) {
@@ -131,19 +141,64 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: const Text('Bible App'),
       ),
-      body: Center(
-        child: Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: ListView(children: [
-            RichText(
-              text: TextSpan(
-                style: const TextStyle(color: Colors.black, fontSize: 20),
-                children: <TextSpan>[
-                  for (var verse in _verses) verse,
-                ],
+      body: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Row(children: [
+              // Dropdown for selecting the book
+              DropdownButton<String>(
+                value: Bible.books[bookIndx - 1],
+                onChanged: (newValue) async {
+                  bookIndx = Bible.books.indexOf(newValue!) + 1;
+                  chapterIndx = 1;
+                  final temp = await _getVerses();
+                  setState(() {
+                    _verses = temp;
+                  });
+                },
+                items: Bible.books.map<DropdownMenuItem<String>>((String book) {
+                  return DropdownMenuItem<String>(
+                    value: book,
+                    child: Text(book),
+                  );
+                }).toList(),
+              ),
+              // Dropdown for selecting the chapter
+              DropdownButton<String>(
+                value: chapterIndx.toString(),
+                onChanged: (newValue) async {
+                  chapterIndx = int.parse(newValue!);
+                  final temp = await _getVerses();
+                  setState(() {
+                    _verses = temp;
+                  });
+                },
+                items: List<int>.generate(
+                        Bible.bookLengths[chapterIndx], (i) => i + 1)
+                    .map<DropdownMenuItem<String>>((int chapter) {
+                  return DropdownMenuItem<String>(
+                    value: chapter.toString(),
+                    child: Text(chapter.toString()),
+                  );
+                }).toList(),
+              ),
+            ]),
+            // Display contents of the chapter
+            Expanded(
+              child: SingleChildScrollView(
+                child: RichText(
+                  text: TextSpan(
+                    style: const TextStyle(color: Colors.black, fontSize: 20),
+                    children: <TextSpan>[
+                      for (var verse in _verses) verse,
+                    ],
+                  ),
+                ),
               ),
             ),
-          ]),
+          ],
         ),
       ),
     );
