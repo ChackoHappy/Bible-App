@@ -42,17 +42,26 @@ class _HomePageState extends State<HomePage> {
 
   int bookIndx = 1;
   int chapterIndx = 1;
+  List<int> _items = [];
 
   @override
   void initState() {
     startAsyncInit();
     super.initState();
+    _updateItems();
   }
 
   Future startAsyncInit() async {
     final temp = await _getVerses();
     setState(() {
       _verses = temp;
+    });
+  }
+
+  void _updateItems() {
+    setState(() {
+      _items =
+          List<int>.generate(Bible.bookLengths[bookIndx - 1], (i) => i + 1);
     });
   }
 
@@ -123,7 +132,7 @@ class _HomePageState extends State<HomePage> {
         if (!tempSplit[k].contains("</em>")) {
           verses.add(TextSpan(text: tempSplit[k]));
         } else {
-          //Italicized portion
+          //Italicize portion between <em></em>
           List<String> finalSplit = tempSplit[k].split("</em>");
           verses.add(TextSpan(
               text: finalSplit[0],
@@ -148,39 +157,42 @@ class _HomePageState extends State<HomePage> {
           children: [
             Row(children: [
               // Dropdown for selecting the book
-              DropdownButton<String>(
-                value: Bible.books[bookIndx - 1],
-                onChanged: (newValue) async {
+              DropdownMenu<String>(
+                initialSelection: Bible.books[bookIndx - 1],
+                label: const Text('Book'),
+                onSelected: (String? newValue) async {
                   bookIndx = Bible.books.indexOf(newValue!) + 1;
                   chapterIndx = 1;
                   final temp = await _getVerses();
                   setState(() {
                     _verses = temp;
                   });
+                  _updateItems();
                 },
-                items: Bible.books.map<DropdownMenuItem<String>>((String book) {
-                  return DropdownMenuItem<String>(
+                dropdownMenuEntries:
+                    Bible.books.map<DropdownMenuEntry<String>>((String book) {
+                  return DropdownMenuEntry<String>(
                     value: book,
-                    child: Text(book),
+                    label: book,
                   );
                 }).toList(),
               ),
               // Dropdown for selecting the chapter
-              DropdownButton<String>(
-                value: chapterIndx.toString(),
-                onChanged: (newValue) async {
+              DropdownMenu<String>(
+                initialSelection: chapterIndx.toString(),
+                label: const Text("Chapter"),
+                onSelected: (newValue) async {
                   chapterIndx = int.parse(newValue!);
                   final temp = await _getVerses();
                   setState(() {
                     _verses = temp;
                   });
                 },
-                items: List<int>.generate(
-                        Bible.bookLengths[chapterIndx], (i) => i + 1)
-                    .map<DropdownMenuItem<String>>((int chapter) {
-                  return DropdownMenuItem<String>(
-                    value: chapter.toString(),
-                    child: Text(chapter.toString()),
+                dropdownMenuEntries:
+                    _items.map<DropdownMenuEntry<String>>((int number) {
+                  return DropdownMenuEntry<String>(
+                    value: number.toString(),
+                    label: number.toString(),
                   );
                 }).toList(),
               ),
