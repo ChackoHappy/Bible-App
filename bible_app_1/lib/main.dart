@@ -1,7 +1,4 @@
-import 'dart:io';
-import 'package:http/io_client.dart';
 import 'package:http/http.dart' as http;
-
 import 'package:bible_app_1/bible.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
@@ -40,8 +37,8 @@ class _HomePageState extends State<HomePage> {
     const TextSpan(text: "Loading...", style: TextStyle(fontSize: 20))
   ];
 
-  int bookIndx = 1;
-  int chapterIndx = 1;
+  int bookIndx = 40;
+  int chapterIndx = 3;
   List<int> _items = [];
 
   @override
@@ -127,20 +124,82 @@ class _HomePageState extends State<HomePage> {
       verses.add(TextSpan(
           text: " ${_numToUnicode(i + 1)} ",
           style: const TextStyle(fontSize: 20)));
-      List<String> tempSplit = currStr.split("<em>");
-      for (var k = 0; k < tempSplit.length; k++) {
-        if (!tempSplit[k].contains("</em>")) {
-          verses.add(TextSpan(text: tempSplit[k]));
-        } else {
-          //Italicize portion between <em></em>
-          List<String> finalSplit = tempSplit[k].split("</em>");
-          verses.add(TextSpan(
-              text: finalSplit[0],
-              style: const TextStyle(fontStyle: FontStyle.italic)));
-          verses.add(TextSpan(text: finalSplit[1]));
+      bool redCheck = false;
+      bool emphCheck = false;
+      int startIndx = 0;
+      for (var k = 0; k < currStr.length; k++) {
+        if (currStr[k] == '<') {
+          //BEGIN RED
+          if (currStr[k + 1] == 's') {
+            if (emphCheck == true) {
+              //ITALICS
+              verses.add(TextSpan(
+                  text: currStr.substring(startIndx, k),
+                  style: const TextStyle(fontStyle: FontStyle.italic)));
+            } else {
+              //PLAIN
+              verses.add(TextSpan(text: currStr.substring(startIndx, k)));
+            }
+            k += 25;
+            startIndx = k;
+            redCheck = true;
+            //BEGIN ITALICS
+          } else if (currStr[k + 1] == 'e') {
+            if (redCheck == true) {
+              //RED
+              verses.add(TextSpan(
+                  text: currStr.substring(startIndx, k),
+                  style: const TextStyle(color: Colors.red)));
+            } else {
+              //PLAIN
+              verses.add(TextSpan(text: currStr.substring(startIndx, k)));
+            }
+            k += 4;
+            startIndx = k;
+            emphCheck = true;
+            //END RED
+          } else if (currStr[k + 2] == 's') {
+            if (emphCheck == true) {
+              //RED AND ITALICS
+              verses.add(TextSpan(
+                  text: currStr.substring(startIndx, k),
+                  style: const TextStyle(
+                      fontStyle: FontStyle.italic, color: Colors.red)));
+            } else {
+              //RED
+              verses.add(TextSpan(
+                  text: currStr.substring(startIndx, k),
+                  style: const TextStyle(color: Colors.red)));
+            }
+            k += 7;
+            startIndx = k;
+            redCheck = false;
+            //END ITALICS
+          } else if (currStr[k + 2] == 'e') {
+            if (redCheck == true) {
+              //RED AND ITALICS
+              verses.add(TextSpan(
+                  text: currStr.substring(startIndx, k),
+                  style: const TextStyle(
+                      fontStyle: FontStyle.italic, color: Colors.red)));
+            } else {
+              //ITALICS
+              verses.add(TextSpan(
+                  text: currStr.substring(startIndx, k),
+                  style: const TextStyle(fontStyle: FontStyle.italic)));
+            }
+            k += 5;
+            startIndx = k;
+            emphCheck = false;
+          }
         }
       }
+      if (startIndx != currStr.length - 1) {
+        verses
+            .add(TextSpan(text: currStr.substring(startIndx, currStr.length)));
+      }
     }
+
     return verses;
   }
 
