@@ -1,2 +1,3 @@
 # Bible App
-Developed with Flutter
+Frontend developed with Flutter
+Backend developed with Litestar
