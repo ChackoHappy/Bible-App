@@ -37,8 +37,8 @@ class _HomePageState extends State<HomePage> {
     const TextSpan(text: "Loading...", style: TextStyle(fontSize: 20))
   ];
 
-  int bookIndx = 40;
-  int chapterIndx = 3;
+  int bookIndx = 1;
+  int chapterIndx = 1;
   List<int> _items = [];
 
   @override
