@@ -1,6 +1,6 @@
 # Bible App
 
-Open emulator by running:
-flutter emulators --launch Pixel_2_API_31
-Then run:
+Open emulator by running:  
+flutter emulators --launch {emulator_name}  
+Then run:  
 flutter run

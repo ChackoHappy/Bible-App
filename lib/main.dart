@@ -2,6 +2,7 @@ import 'package:frontend/bible.dart';
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:just_audio/just_audio.dart';
 
 void main() {
   runApp(const BibleApp());
@@ -37,9 +38,11 @@ class _HomePageState extends State<HomePage> {
     const TextSpan(text: "Loading...", style: TextStyle(fontSize: 20))
   ];
 
-  int bookIndx = 1;
-  int chapterIndx = 1;
+  int _bookIndx = 1;
+  int _chapterIndx = 1;
   List<int> _items = [];
+  bool _isPlaying = false;
+  final player = AudioPlayer();
 
   @override
   void initState() {
@@ -58,7 +61,7 @@ class _HomePageState extends State<HomePage> {
   void _updateItems() {
     setState(() {
       _items =
-          List<int>.generate(Bible.bookLengths[bookIndx - 1], (i) => i + 1);
+          List<int>.generate(Bible.bookLengths[_bookIndx - 1], (i) => i + 1);
     });
   }
 
@@ -109,7 +112,7 @@ class _HomePageState extends State<HomePage> {
     //Get JSON
     final jsonChapter =
         json.decode(await rootBundle.loadString("assets/bible.json"))[
-            Bible.books[bookIndx - 1]]["$chapterIndx"];
+            Bible.books[_bookIndx - 1]]["$_chapterIndx"];
     List<TextSpan> verses = [];
     //Build List
     for (var i = 0; i < jsonChapter['verses'].length; i++) {
@@ -202,6 +205,24 @@ class _HomePageState extends State<HomePage> {
     return verses;
   }
 
+  void _cycleAudio() async {
+    if (_isPlaying == true) {
+      //Pause audio
+      player.pause();
+      setState(() {
+        _isPlaying = false;
+      });
+    } else {
+      //Play audio
+      await player.setUrl(
+          'https://kalloor-videos.s3.amazonaws.com/Travis%20Scott%20-%20STARGAZING.mp3?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Credential=AKIAWT4AUR7LT62IEUHK%2F20240610%2Fus-east-2%2Fs3%2Faws4_request&X-Amz-Date=20240610T174804Z&X-Amz-Expires=60&X-Amz-SignedHeaders=host&X-Amz-Signature=53dd2fcd692390fad3e29e81a55f37a8b16d091c615d1784289d43bd3b588d5f');
+      player.play();
+      setState(() {
+        _isPlaying = true;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -213,14 +234,14 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Row(children: [
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
               // Dropdown for selecting the book
               DropdownMenu<String>(
-                initialSelection: Bible.books[bookIndx - 1],
+                initialSelection: Bible.books[_bookIndx - 1],
                 label: const Text('Book'),
                 onSelected: (String? newValue) async {
-                  bookIndx = Bible.books.indexOf(newValue!) + 1;
-                  chapterIndx = 1;
+                  _bookIndx = Bible.books.indexOf(newValue!) + 1;
+                  _chapterIndx = 1;
                   final temp = await _getVerses();
                   setState(() {
                     _verses = temp;
@@ -237,10 +258,11 @@ class _HomePageState extends State<HomePage> {
               ),
               // Dropdown for selecting the chapter
               DropdownMenu<String>(
-                initialSelection: chapterIndx.toString(),
+                width: 100,
+                initialSelection: _chapterIndx.toString(),
                 label: const Text("Chapter"),
                 onSelected: (newValue) async {
-                  chapterIndx = int.parse(newValue!);
+                  _chapterIndx = int.parse(newValue!);
                   final temp = await _getVerses();
                   setState(() {
                     _verses = temp;
@@ -254,6 +276,11 @@ class _HomePageState extends State<HomePage> {
                   );
                 }).toList(),
               ),
+              IconButton(
+                  icon: _isPlaying
+                      ? const Icon(Icons.pause)
+                      : const Icon(Icons.play_arrow),
+                  onPressed: _cycleAudio),
             ]),
             // Display contents of the chapter
             Expanded(
